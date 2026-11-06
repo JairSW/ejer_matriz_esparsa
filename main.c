@@ -3,8 +3,8 @@
 #include <time.h>
 
 #define MAX_DIM    1000
-#define DENSIDAD   0.05      /* 5% de elementos no nulos */
-#define TAM_BUFFER 4096      /* elementos de B leídos por bloque */
+#define DENSIDAD   0.05      // 5% de elementos no nulos 
+#define TAM_BUFFER 4096      // elementos de B leídos por bloque 
 
 // Una celda no nula de la matriz (formato COO) 
 typedef struct {
