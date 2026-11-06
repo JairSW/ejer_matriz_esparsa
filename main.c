@@ -1,17 +1,3 @@
-/*
- * ejer_matriz_esparsa - SW303 Gestión de Archivos en C
- *
- * Multiplicación de matrices esparsas (formato COO) usando archivos:
- *   1) Genera matriz_a.txt (MxN) y matriz_b.txt (NxP) con 5% de no nulos
- *   2) Convierte ambos a binario: matriz_a.bin, matriz_b.bin
- *   3) Multiplica leyendo los .bin -> acumulado.bin (parciales)
- *   4) Consolida (suma celdas repetidas) -> matriz_axb.bin
- *   5) Traduce el resultado a texto -> matriz_axb.txt
- *
- * Uso:  ./matriz            (pide M, N, P por teclado)
- *       ./matriz M N P      (por argumentos)
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -20,20 +6,18 @@
 #define DENSIDAD   0.05      /* 5% de elementos no nulos */
 #define TAM_BUFFER 4096      /* elementos de B leídos por bloque */
 
-/* Una celda no nula de la matriz (formato COO) */
+// Una celda no nula de la matriz (formato COO) 
 typedef struct {
     int    fila;
     int    col;
     double valor;
 } ElementoEsparso;
 
-/* Cabecera al inicio de cada .bin: dimensiones de la matriz */
+// Cabecera al inicio de cada .bin: dimensiones de la matriz 
 typedef struct {
     int filas;
     int cols;
 } Cabecera;
-
-/* ---------- utilidades ---------- */
 
 static FILE *abrir(const char *nombre, const char *modo)
 {
@@ -45,7 +29,7 @@ static FILE *abrir(const char *nombre, const char *modo)
     return f;
 }
 
-/* ---------- Paso 1: generación aleatoria en texto ---------- */
+// Paso 1: generación aleatoria en texto 
 
 /* Formato del .txt:
  *   primera línea: filas columnas
@@ -57,7 +41,7 @@ static long generar_matriz_txt(const char *nombre, int filas, int cols)
     long nnz   = (long)(total * DENSIDAD);
     if (nnz < 1) nnz = 1;
 
-    /* marca de posiciones ya usadas, para no repetir (i, j) */
+    // marca de posiciones ya usadas, para no repetir (i, j) 
     char *ocupado = calloc((size_t)total, 1);
     if (ocupado == NULL) {
         fprintf(stderr, "Sin memoria\n");
@@ -69,15 +53,15 @@ static long generar_matriz_txt(const char *nombre, int filas, int cols)
 
     long generados = 0;
     while (generados < nnz) {
-        /* i y j por separado: RAND_MAX puede ser solo 32767 (Windows) */
+        /* i y j por separado */
         int i = rand() % filas;
         int j = rand() % cols;
         long pos = (long)i * cols + j;
 
-        if (ocupado[pos]) continue;          /* posición repetida */
+        if (ocupado[pos]) continue;          // posición repetida 
         ocupado[pos] = 1;
 
-        double v = 1.0 + (rand() % 900) / 100.0;   /* 1.00 .. 9.99 (nunca 0) */
+        double v = 1.0 + (rand() % 900) / 100.0;   // 1.00 .. 9.99 (nunca 0) 
         fprintf(f, "%d %d %.2f\n", i, j, v);
         generados++;
     }
@@ -87,7 +71,7 @@ static long generar_matriz_txt(const char *nombre, int filas, int cols)
     return nnz;
 }
 
-/* ---------- Paso 2: texto -> binario ---------- */
+//  Paso 2: texto -> binario
 
 static long txt_a_bin(const char *txt, const char *bin)
 {
@@ -113,11 +97,11 @@ static long txt_a_bin(const char *txt, const char *bin)
     return n;
 }
 
-/* ---------- Paso 3: multiplicación -> acumulado.bin ---------- */
+// Paso 3: multiplicación -> acumulado.bin  
 
-/* Por cada A[i][k] recorre todo B buscando filas == k.
- * Cada coincidencia genera un parcial (i, j, a*b) que se escribe en acumulado.
- * Devuelve la cantidad de parciales; en *res deja las dimensiones de AxB. */
+/* -Por cada A[i][k] recorre todo B buscando filas == k.
+ -Cada coincidencia genera un parcial (i, j, a*b) que se escribe en acumulado.
+  -Devuelve la cantidad de parciales; en *res deja las dimensiones de AxB. */
 static long multiplicar(const char *bin_a, const char *bin_b,
                         const char *acumulado, Cabecera *res)
 {
@@ -138,7 +122,7 @@ static long multiplicar(const char *bin_a, const char *bin_b,
     res->cols  = cb.cols;
 
     ElementoEsparso a;
-    ElementoEsparso buffer[TAM_BUFFER];   /* bloque de B (poca RAM) */
+    ElementoEsparso buffer[TAM_BUFFER];   
     long parciales = 0;
 
     while (fread(&a, sizeof(ElementoEsparso), 1, fa) == 1) {
@@ -166,9 +150,9 @@ static long multiplicar(const char *bin_a, const char *bin_b,
     return parciales;
 }
 
-/* ---------- Consolidación: sumar celdas repetidas ---------- */
+/* Consolidación: sumar celdas repetidas */
 
-/* Orden por fila y luego por columna (para qsort) */
+/* Orden por fila y luego por columna */
 static int comparar(const void *pa, const void *pb)
 {
     const ElementoEsparso *x = pa;
@@ -177,8 +161,8 @@ static int comparar(const void *pa, const void *pb)
     return x->col - y->col;
 }
 
-/* Lee acumulado.bin en RAM, lo ordena y suma los que comparten (fila, col).
- * Escribe el resultado final en bin_final (con cabecera). */
+/* -Lee acumulado.bin en RAM, lo ordena y suma los que comparten (fila, col).
+   -Escribe el resultado final en bin_final (con cabecera). */
 static long consolidar(const char *acumulado, const char *bin_final,
                        Cabecera res)
 {
@@ -222,7 +206,7 @@ static long consolidar(const char *acumulado, const char *bin_final,
     return resultantes;
 }
 
-/* ---------- Paso 4: binario final -> matriz_axb.txt ---------- */
+/* Paso 4: binario final -> matriz_axb.txt  */
 
 static void bin_a_txt(const char *bin, const char *txt)
 {
@@ -241,7 +225,7 @@ static void bin_a_txt(const char *bin, const char *txt)
     fclose(ft);
 }
 
-/* ---------- main ---------- */
+// MAIN 
 
 int main(int argc, char *argv[])
 {
@@ -268,18 +252,18 @@ int main(int argc, char *argv[])
     srand((unsigned)time(NULL));
     clock_t t0 = clock();
 
-    /* Paso 1 */
+    // Paso 1
     long nnz_a = generar_matriz_txt("matriz_a.txt", M, N);
     long nnz_b = generar_matriz_txt("matriz_b.txt", N, P);
     printf("Paso 1: matriz_a.txt (%dx%d, %ld no nulos) y matriz_b.txt (%dx%d, %ld no nulos)\n",
            M, N, nnz_a, N, P, nnz_b);
 
-    /* Paso 2 */
+    // Paso 2 
     txt_a_bin("matriz_a.txt", "matriz_a.bin");
     txt_a_bin("matriz_b.txt", "matriz_b.bin");
     printf("Paso 2: matriz_a.bin y matriz_b.bin creados\n");
 
-    /* Paso 3 */
+    //Paso 3 
     Cabecera res;
     long parciales = multiplicar("matriz_a.bin", "matriz_b.bin",
                                  "acumulado.bin", &res);
@@ -288,7 +272,7 @@ int main(int argc, char *argv[])
     long finales = consolidar("acumulado.bin", "matriz_axb.bin", res);
     printf("        consolidado: %ld celdas no nulas en matriz_axb.bin\n", finales);
 
-    /* Paso 4 */
+    // Paso 4 
     bin_a_txt("matriz_axb.bin", "matriz_axb.txt");
     printf("Paso 4: matriz_axb.txt (%dx%d) escrito\n", res.filas, res.cols);
 
